@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>JavaScript非同期研修</title>
+</head>
+<body>
+    <h1>JavaScript 非同期処理の実践</h1>
+    <p>下のボタンを押してから、F12キーでコンソールを開いて確認してね!</p>
+    
+    <button id="startBtn" style="padding: 15px 30px; font-size: 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        非同期バトンリレーをスタート！
+    </button>
+
+    <script>
+        // 1. あなたが作った sleep 関数（あのバケツリレーの仕組み）
+        function sleep(callback, val) {
+            setTimeout(function() {
+                console.log('カウントアップ:', val++);
+                callback(val);
+            }, 1000);
+        }
+
+        // 2. 画面のボタンを JavaScript に登録する
+        const btn = document.getElementById('startBtn');
+
+        // 3. ボタンがクリックされた時の「お祭り会場」を作る
+        btn.addEventListener('click', () => {
+            console.log('🚀 ボタンが押されました！連鎖処理を開始します...');
+
+            // 4. ここでついに、あの「コールバック地獄」が動き出す！
+            sleep(function(val) {
+                sleep(function(val) {
+                    sleep(function(val) {
+                        console.log('🏁 すべての連鎖処理が終了しました！');
+                    }, val)
+                }, val)
+            }, 0);
+            
+        });
+    </script>
+</body>
+</html>

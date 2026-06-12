@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本格派・自動販売機</title>
+    <style>
+        /* 全体のリセットと背景 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #e0e5ec;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* 自販機本体の外枠 */
+        .vending-machine {
+            width: 420px;
+            background: linear-gradient(135deg, #d31010 0%, #8a0707 100%);
+            border-radius: 16px;
+            padding: 25px 20px;
+            box-shadow: 
+                10px 10px 20px rgba(0, 0, 0, 0.3),
+                -5px -5px 15px rgba(255, 255, 255, 0.1) inset,
+                5px 5px 15px rgba(0, 0, 0, 0.5) inset;
+            border: 5px solid #a30d0d;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* メインディスプレイ（商品棚＋操作パネル） */
+        .main-panel {
+            display: grid;
+            grid-template-columns: 2.8fr 1.2fr;
+            gap: 15px;
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 3px solid #333;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+        }
+
+        /* 左側：商品展示エリア */
+        .showcase {
+            display: grid;
+            grid-template-rows: repeat(2, 1fr);
+            gap: 15px;
+            background: linear-gradient(to bottom, #2a2a2a, #151515);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+
+        /* 商品の段 */
+        .showcase-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 4px;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.05);
+            border-bottom: 2px solid #333;
+        }
+
+        /* 各商品ボトル/缶の見た目 */
+        .drink-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* ダミーボトル（絵文字をリアルっぽく） */
+        .bottle {
+            font-size: 36px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));
+            margin-bottom: 4px;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        /* 値段タグ */
+        .price-tag {
+            background-color: #fff;
+            color: #000;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 2px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* 自販機のリアルなボタン */
+        .vending-btn {
+            width: 80%;
+            height: 22px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            font-size: 9px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 18px;
+            box-shadow: 0 3px 0 #999, 0 4px 5px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+            text-transform: uppercase;
+        }
+
+        /* つめたい（青） / あたたかい（赤） */
+        .btn-cold { background: linear-gradient(to bottom, #2575fc, #1a4cb0); border-color: #66a6ff; }
+        .btn-hot { background: linear-gradient(to bottom, #ff416c, #ff4b2b); border-color: #ff7b7b; }
+
+        .vending-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 0px 0 #999, 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* 売切状態のスタイル */
+        .vending-btn.sold-out {
+            background: #444 !important;
+            border-color: #555 !important;
+            color: #ff3333 !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 右側：操作パネルエリア */
+        .operation-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding-top: 5px;
+        }
+
+        /* デジタル金額表示（LED） */
+        .led-display {
+            width: 100%;
+            background-color: #050505;
+            border: 2px solid #222;
+            border-radius: 4px;
+            padding: 8px 6px;
+            color: #ff3b30; /* 赤色LED */
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+            box-shadow: inset 0 0 8px rgba(255,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        /* 硬貨投入口・電子マネー */
+        .slot-hardware {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #555, #222);
+            border-radius: 4px;
+            border: 2px solid #444;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        /* コインの縦穴 */
+        .coin-slit {
+            width: 6px;
+            height: 30px;
+            background-color: #000;
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            border-radius: 2px;
+        }
+        /* 返却レバー */
+        .return-lever {
+            width: 16px;
+            height: 24px;
+            background: #888;
+            border-radius: 2px;
+            position: absolute;
+            top: 12px;
+            right: -25px;
+            cursor: pointer;
+            border: 1px solid #666;
+            box-shadow: 0 2px 2px rgba(0,0,0,0.4);
+        }
+
+        /* ICカード読み取り機風のデコレーション */
+        .ic-reader {
+            width: 100%;
+            height: 45px;
+            background: #1e3c72;
+            border: 2px solid #2a5298;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00d2ff;
+            font-size: 10px;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(0,210,255,0.3);
+        }
+
+        /* 手元のお財布（デバッグ用・お金を投入するボタン） */
+        .wallet-zone {
+            background-color: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .wallet-title {
+            color: #fff;
+            font-size: 12px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+        .insert-btn {
+            background: linear-gradient(to bottom, #f9d423 0%, #ff4e50 100%);
+            border: none;
+            color: #fff;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .insert-btn:active { transform: scale(0.95); }
+
+        /* 大型商品取り出し口 */
+        .delivery-shutter {
+            height: 80px;
+            background: linear-gradient(to bottom, #222 0%, #111 100%);
+            border-radius: 8px;
+            border: 4px solid #333;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        .shutter-flap {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #3a3a3a, #252525);
+            border-bottom: 2px solid #111;
+            transform-origin: top;
+            transition: transform 0.5s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #555;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        /* 商品が落ちてきたらフラップを少し傾けるアニメーション用 */
+        .delivery-shutter.active .shutter-flap {
+            transform: rotateX(-45deg);
+            background: linear-gradient(to bottom, #2a2a2a, #151515);
+        }
+        #dropped-item {
+            font-size: 40px;
+            z-index: 1;
+            display: none;
+            animation: bounce 0.4s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(-40px); }
+            50% { transform: translateY(0) scaleY(0.8); }
+            70% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vending-machine">
+        <div class="main-panel">
+            
+            <div class="showcase">
+                <div class="showcase-row">
+                    <div class="drink-item">
+                        <div class="bottle">🍵</div>
+                        <div class="price-tag">120円</div>
+                        <button class="vending-btn btn-cold" onclick="tapBuy('🍵', 120)">つめたい</button>
+                    </div>
+                    <div class="drink-item">
+                        <div class="bottle">🥤</div>
+                        <div class="price-tag">150円</div>
+                        <button class="vending-btn btn-cold" onclick="tapBuy('🥤', 150)">つめたい</button>
+                    </div>
+                    <div class="drink-item">
+                        <div class="bottle">エネルギー🧃</div>
+                        <div class="price-tag">200円</div>
+                        <button class="vending-btn btn-cold" onclick="tapBuy('🧃', 200)">つめたい</button>
+                    </div>
+                </div>
+                
+                <div class="showcase-row">
+                    <div class="drink-item">
+                        <div class="bottle">☕</div>
+                        <div class="price-tag">130円</div>
+                        <button class="vending-btn btn-hot" onclick="tapBuy('☕', 130)">あたたかい</button>
+                    </div>
+                    <div class="drink-item">
+                        <div class="bottle">🌽</div>
+                        <div class="price-tag">140円</div>
+                        <button class="vending-btn btn-hot" onclick="tapBuy('🌽', 140)">あたたかい</button>
+                    </div>
+                    <div class="drink-item">
+                        <div class="bottle">ココア🍫</div>
+                        <div class="price-tag">160円</div>
+                        <button class="vending-btn btn-hot" onclick="tapBuy('🍫', 160)">あたたかい</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="operation-panel">
+                <div class="led-display" id="balance">0</div>
+                
+                <div class="slot-hardware">
+                    <div class="coin-slit"></div>
+                    <div class="return-lever" onclick="returnChange()" title="お釣り・返却レバー"></div>
+                </div>
+
+                <div class="ic-reader">
+                    <span>▼ 電子マネー</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="wallet-zone">
+            <div class="wallet-title">🪙 お金を投入（クリックで入れる）</div>
+            <button class="insert-btn" onclick="addMoney(10)">(10円)</button>
+            <button class="insert-btn" onclick="addMoney(50)">(50円)</button>
+            <button class="insert-btn" onclick="addMoney(100)">(100円)</button>
+            <button class="insert-btn" onclick="addMoney(500)">(500円)</button>
+        </div>
+
+        <div class="delivery-shutter" id="shutter" onclick="takeDrink()">
+            <div class="shutter-flap" id="flap">取り出し口</div>
+            <div id="dropped-item"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentBalance = 0;
+
+        // お金を投入する関数
+        function addMoney(amount) {
+            currentBalance += amount;
+            document.getElementById('balance').innerText = currentBalance;
+        }
+
+        // 商品を購入する関数
+        function tapBuy(drinkEmoji, price) {
+            if (currentBalance >= price) {
+                currentBalance -= price;
+                document.getElementById('balance').innerText = currentBalance;
+
+                // ガラガラ、ポン！と商品が落ちる演出
+                const shutter = document.getElementById('shutter');
+                const flap = document.getElementById('flap');
+                const item = document.getElementById('dropped-item');
+
+                shutter.classList.add('active');
+                flap.style.display = 'none'; // 文字を消す
+                item.innerText = drinkEmoji;
+                item.style.display = 'block';
+            } else {
+                alert("ピピッ！ お金が足りません。");
+            }
+        }
+
+        // 商品を取り出す（クリックで回収）
+        function takeDrink() {
+            const shutter = document.getElementById('shutter');
+            const flap = document.getElementById('flap');
+            const item = document.getElementById('dropped-item');
+
+            if (item.style.display === 'block') {
+                item.style.display = 'none';
+                flap.style.display = 'flex';
+                shutter.classList.remove('active');
+            }
+        }
+
+        // 返却レバー（お釣り）
+        function returnChange() {
+            if (currentBalance > 0) {
+                alert(`チャリン！ お釣り ${currentBalance} 円が返却されました。`);
+                currentBalance = 0;
+                document.getElementById('balance').innerText = currentBalance;
+            }
+        }
+    </script>
+</body>
+</html>
